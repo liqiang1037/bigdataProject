@@ -21,6 +21,9 @@ public class JavaNCsend {
             PrintWriter pw = new PrintWriter(os);
             // PrintWriter把数据写到目的地
             for(int i=0;i<100000000;i++){
+                System.out.println("send success! 第"+i+"次");
+                System.out.println("send success! The length:" + sendStr.length());
+
                 pw.print(sendStr);
                 Thread.sleep(100);
             }
@@ -31,7 +34,6 @@ public class JavaNCsend {
             pw.close();
             client.close();
             server.close();
-            System.out.println("send success! The length:" + sendStr.length());
         } catch (Exception e) {
             System.out.println("connection exit!");
             System.out.println();
