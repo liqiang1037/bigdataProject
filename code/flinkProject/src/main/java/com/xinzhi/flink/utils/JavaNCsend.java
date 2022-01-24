@@ -21,9 +21,7 @@ public class JavaNCsend {
             PrintWriter pw = new PrintWriter(os);
             // PrintWriter把数据写到目的地
             for(int i=0;i<100000000;i++){
-                System.out.println("send success! 第"+i+"次");
-                System.out.println("send success! The length:" + sendStr.length());
-
+                System.out.println("send success! 第"+i+"次数");
                 pw.print(sendStr);
                 Thread.sleep(100);
             }
