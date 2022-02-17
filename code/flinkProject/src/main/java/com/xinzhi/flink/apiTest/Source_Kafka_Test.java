@@ -24,7 +24,7 @@ public class Source_Kafka_Test {
         properties.setProperty("auto.offset.reset", "latest");
 
         // flink添加外部数据源
-        DataStream<String> dataStream = env.addSource(new FlinkKafkaConsumer<String>("test", new SimpleStringSchema(),properties));
+        DataStream<String> dataStream = env.addSource(new FlinkKafkaConsumer<String>("sensor", new SimpleStringSchema(),properties));
 
         // 打印输出
         dataStream.print();
