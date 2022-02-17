@@ -1,0 +1,154 @@
+tar -zxvf kafka_2.11-2.4.1.tgz -C /opt/software/
+/opt/software/jdk1.8.0_241
+export JAVA_HOME=/opt/software/jdk1.8.0_241
+export JRE_HOME=${JAVA_HOME}/jre
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib
+export PATH=${JAVA_HOME}/bin:$PATH
+
+vi /etc/profile
+export FLINK_HOME=/opt/software/flink-1.12.7
+export PATH=$PATH:$FLINK_HOME/bin
+
+stdout 页面无日志--nc 接受到数据 stdout就会收到消息
+taskmanger--如何启动多个taskmanger
+
+
+>vim /etc/profile
+
+export HADOOP_HOME=/hadoop/hadoop-2.8.4
+
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
+
+export PATH=.:${JAVA_HOME}/bin:${HADOOP_HOME}/bin:$PATH
+
+Yarn管理器开启历史日志服务、查看日志
+修改mapred-site.xml
+
+ <property>
+        <name>mapreduce.jobhistory.address</name>
+        <value>master:10020</value>
+    </property>
+    <property>
+        <name>mapreduce.jobhistory.webapp.address</name>
+        <value>master:19888</value>
+    </property>
+
+修改mapred-site.xml
+
+ <property>
+         <name>yarn.log-aggregation-enable</name>
+         <value>true</value>
+     </property>
+     <!-- 配置日志服务器的地址,work节点使用 -->
+     <property>
+         <name>yarn.log.server.url</name>
+         <value>http://hadoop:19888/jobhistory/logs/</value>
+     </property>
+     <!-- 配置日志过期时间,单位秒 -->
+     <property>
+         <name>yarn.log-aggregation.retain-seconds</name>
+         <value>86400</value>
+     </property>
+
+修改映射
+C:\WINDOWS\system32\drivers\etc
+
+以前我最怕的就是写东西，作文、方案、汇报材料、总结，一碰文字脑袋就短路，就想逃，不得不写时就百度、复制、粘贴。曾经多少次暗暗下定决心要好好练习，却从未行动过。
+这次以写留言为契机，终于开始练习了。之后和一群超级个体成员组成了一个小团队——海洋体系拓展群，我们在一起每天写文，到目前我已经写了50来篇了，文章不长也不够好，
+但行动起来了就是最好的改变，完成比完美更重要。
+
+ssh
+
+[root@VM-4-7-centos flink-1.12.7]# ps -ef |  grep ssh
+root      1779     1  0 10:34 ?        00:00:00 /usr/sbin/sshd -D
+root      2020  1779  0 10:35 ?        00:00:00 sshd: root@pts/0
+root      2943  1779  0 10:41 ?        00:00:00 sshd: root@notty
+root      2951  2943  0 10:41 ?        00:00:00 /usr/libexec/openssh/sftp-server
+root      5315  1779  0 10:52 ?        00:00:00 sshd: [accepted]
+sshd      5316  5315  0 10:52 ?        00:00:00 sshd: [net]
+root      5318  2022  0 10:52 pts/0    00:00:00 grep --color=auto ssh
+
+tar -zxvf hadoop-2.7.0.tar.gz -C /opt/software/
+mv hadoop-2.7.0 hadoop
+
+
+安装完效果
+[root@VM-4-7-centos hadoop]# jps
+18240 ResourceManager
+10336 SecondaryNameNode
+9991 NameNode
+10153 DataNode
+4650 StandaloneSessionClusterEntrypoint
+18554 NodeManager
+4927 TaskManagerRunner
+18655 Jps
+
+
+[root@VM-4-7-centos hadoop]# netstat -antp | grep sshd
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      1779/sshd
+tcp        0     96 10.0.4.7:22             58.34.206.34:51889      ESTABLISHED 2020/sshd: root@pts
+tcp        0      0 10.0.4.7:22             58.34.206.34:52360      ESTABLISHED 2943/sshd: root@not
+tcp6       0      0 :::22                   :::*                    LISTEN      1779/sshd
+
+
+tar -zxvf hadoop-2.7.0.tar.gz -C /opt/software/
+vim /etc/profile
+export HADOOP_HOME=/opt/software/hadoop
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
+export PATH=.:${JAVA_HOME}/bin:${HADOOP_HOME}/bin:$PATH
+
+
+修改mapred-site.xml
+
+<property>
+    <name>mapred.job.tracker</name>
+    <value>master:9001</value>
+</property>
+<property>
+      <name>mapred.local.dir</name>
+       <value>/root/hadoop/var</value>
+</property>
+<property>
+       <name>mapreduce.framework.name</name>
+       <value>yarn</value>
+</property>
+
+----
+安装zk
+https://cloud.tencent.com/developer/article/1133351
+
+bin/zookeeper-server-stop.sh -daemon config/zookeeper.properties
+
+https://www.cnblogs.com/zhaoshizi/p/12154518.html
+
+tar -xzvf apache-zookeeper-3.5.9-bin.tar.gz
+
+kafka安装及配置过程
+https://www.cnblogs.com/zhaoshizi/p/12154518.html
+
+flink 启动 Per Job Cluster
+flink run -m yarn-cluster -c com.xinzhi.flink.api.source.SourceTest3_Kafka flinkProject-1.0-SNAPSHOT-jar-with-dependencies.jar
+
+ssh-keygen -R 你要访问的IP地址
+
+ssh-keygen -R 0.0.0.0
+ssh-keygen -R localhost
+ssh-keygen -R VM-4-7-centos
+
+hadoop开始jobhistory服务器运行命令
+ sbin/mr-jobhistory-daemon.sh start historyserver
+
+
+ while true;do
+      sleep 20
+     if test -d /var/empty/sshd
+     then
+     echo '1'
+     else
+     echo '0'
+     mkdir -p  /var/empty/sshd
+     fi
+ done

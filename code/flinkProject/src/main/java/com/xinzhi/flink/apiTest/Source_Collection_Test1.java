@@ -7,7 +7,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import java.util.Arrays;
 
 public class Source_Collection_Test1 {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         StreamExecutionEnvironment streamEnv=StreamExecutionEnvironment.getExecutionEnvironment();
         streamEnv.setParallelism(4);
@@ -18,5 +18,6 @@ public class Source_Collection_Test1 {
 
         ));
         source.print("sensor");
+        streamEnv.execute("1");
     }
 }
