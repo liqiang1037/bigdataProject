@@ -1,0 +1,13 @@
+bin/kafka-topics.sh --list --zookeeper localhost:2181
+
+bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 3
+--partitions 3 --topic ods_base_log
+
+bin/kafka-console-consumer.sh --bootstrap-server  localhost:2181  --topic ods_base_log --from-beginning
+
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --from-beginning --topic ods_base_log
+
+service mysqld restart
+
+gmall2021-logger-0.0.1-SNAPSHOT.jar
+flink run -c com.example.gmall2021logger.serviceImpl.FlinkCDC gmall2021-logger-0.0.1-SNAPSHOT.jar
