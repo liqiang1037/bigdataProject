@@ -17,20 +17,21 @@ public class FlinkCDC {
         StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
-        env.enableCheckpointing(5000L);
-        env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
-        env.getCheckpointConfig().enableExternalizedCheckpoints(
-                CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
-        //2.4 指定从 CK 自动重启策略
-        env.setRestartStrategy(RestartStrategies.fixedDelayRestart(3, 2000L));
-        //2.5 设置状态后端
-        env.setStateBackend(new FsStateBackend("hdfs://localhost:8020/flinkCDC"));
+//        env.enableCheckpointing(5000L);
+//        env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
+//        env.getCheckpointConfig().enableExternalizedCheckpoints(
+//                CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
+//        //2.4 指定从 CK 自动重启策略
+//        env.setRestartStrategy(RestartStrategies.fixedDelayRestart(3, 2000L));
+//        //2.5 设置状态后端
+//        env.setStateBackend(new FsStateBackend("hdfs://VM-4-7-centos:8020/flinkCDC"));
         DebeziumSourceFunction<String> mysqlSource = MySQLSource.<String>builder()
-                .hostname("localhost")
+                .hostname("VM-4-7-centos")
                 .port(3306)
                 .username("root")
                 .password("3edcCFT^")
                 .databaseList("gmall2021")
+                .tableList("gmall2021.student")
                 .startupOptions(StartupOptions.initial())
                 .deserializer(new StringDebeziumDeserializationSchema())
                 .build();
