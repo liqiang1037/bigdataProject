@@ -10,7 +10,7 @@ import com.alibaba.ververica.cdc.debezium.DebeziumSourceFunction;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
-import utils.CustomDeserializationSchema;
+import common.CustomDeserializationSchema;
 import utils.MyKafkaUtil;
 
 public class Flink_CDCWithCustomerSchema {
