@@ -1,4 +1,4 @@
-package app;
+package app.apitest;
 
 import bean.SensorReading;
 import org.apache.flink.streaming.api.datastream.DataStream;
