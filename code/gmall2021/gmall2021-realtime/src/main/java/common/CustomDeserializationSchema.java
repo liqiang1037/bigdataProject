@@ -15,7 +15,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 
 
-public class CustomDeserializationSchema  implements DebeziumDeserializationSchema {
+public class CustomDeserializationSchema implements DebeziumDeserializationSchema {
     @Override
     public void deserialize(SourceRecord sourceRecord, Collector collector) throws Exception {
         //获取主题信息,包含着数据库和表名
@@ -30,24 +30,32 @@ public class CustomDeserializationSchema  implements DebeziumDeserializationSche
         Struct value = (Struct) sourceRecord.value();
 
         Struct after = value.getStruct("after");
-        //创建 JSON 对象用于存储数据信息
         JSONObject data = new JSONObject();
-        for (Field field : after.schema().fields()) {
-            Object o = after.get(field);
-            data.put(field.name(), o);
+        if (after != null) {
+            //创建 JSON 对象用于存储数据信息
+
+            for (Field field : after.schema().fields()) {
+                Object o = after.get(field);
+                data.put(field.name(), o);
+            }
         }
         //创建 JSON 对象用于封装最终返回值数据信息
         JSONObject result = new JSONObject();
-        result.put("operation", operation.toString().toLowerCase());
+        if (operation.toString().toLowerCase().equals("create")) {
+            result.put("type", "insert");
+        } else {
+            result.put("type", operation.toString().toLowerCase());
+        }
         result.put("data", data);
         result.put("database", db);
         result.put("table", tableName);
         //发送数据至下游
         collector.collect(result.toJSONString());
+
     }
 
     @Override
     public TypeInformation getProducedType() {
-         return TypeInformation.of(String.class);
+        return TypeInformation.of(String.class);
     }
 }

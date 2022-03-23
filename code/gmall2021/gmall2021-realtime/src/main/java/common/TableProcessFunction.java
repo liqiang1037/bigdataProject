@@ -12,10 +12,7 @@ import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 import utils.GmallConfig;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -36,9 +33,15 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
 
     @Override
     public void open(Configuration parameters) throws Exception {
+
+// URL指向要访问的数据库名scutcs
+        String url = GmallConfig.PHOENIX_SERVER;
         //初始化 Phoenix 的连接
+        String user = "root";
+       // Java连接MySQL配置时的密码
+        String password = "3edcCFT^";
         Class.forName(GmallConfig.PHOENIX_DRIVER);
-        connection = DriverManager.getConnection(GmallConfig.PHOENIX_SERVER);
+         connection = DriverManager.getConnection(url, user, password);
     }
 
     @Override
@@ -65,6 +68,7 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
                 collector.collect(jsonObject);
             } else if (TableProcess.SINK_TYPE_HBASE.equals(tableProcess.getSinkType())) {
                 //HBase 数据,将数据输出到侧输出流
+
                 readOnlyContext.output(outputTag, jsonObject);
             }
         } else {
@@ -91,7 +95,7 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
         //取出 Value 数据封装为 TableProcess 对象
         TableProcess tableProcess = JSON.parseObject(data.toString(), TableProcess.class);
         checkTable(tableProcess.getSinkTable(), tableProcess.getSinkColumns(), tableProcess.getSinkPk(), tableProcess.getSinkExtend());
-        System.out.println("Key:" + key + "," + tableProcess);
+
         //广播出去
         broadcastState.put(key, tableProcess);
     }
@@ -115,9 +119,9 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
             //判断当前字段是否为主键
             if (sinkPk.equals(field)) {
 
-                createSql.append(field).append(" varchar primary key ");
+                createSql.append(field).append(" varchar(200)  primary key ");
             } else {
-                createSql.append(field).append(" varchar ");
+                createSql.append(field).append(" varchar(200) ");
             }
             //如果当前字段不是最后一个字段,则追加","
             if (i < fields.length - 1) {
@@ -126,7 +130,7 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
         }
         createSql.append(")");
         createSql.append(sinkExtend);
-        System.out.println(createSql);
+       // System.out.println("建表语句====>"+createSql);
         //执行建表 SQL
         PreparedStatement preparedStatement = null;
         try {
@@ -151,12 +155,49 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
         String[] fields = sinkColumns.split(",");
         List<String> fieldList = Arrays.asList(fields);
         Set<Map.Entry<String, Object>> entries = data.entrySet();
-// while (iterator.hasNext()) {
-// Map.Entry<String, Object> next = iterator.next();
-// if (!fieldList.contains(next.getKey())) {
-// iterator.remove();
-// }
-// }
         entries.removeIf(next -> !fieldList.contains(next.getKey()));
     }
+
+    public static void main(String[] args) {
+        String driver = GmallConfig.PHOENIX_DRIVER;
+// URL指向要访问的数据库名scutcs
+        String url = GmallConfig.PHOENIX_SERVER;
+// MySQL配置时的用户名
+        String user = "root";
+// Java连接MySQL配置时的密码
+        String password = "3edcCFT^";
+        try {
+
+// 加载驱动程序
+
+            Class.forName(driver);
+
+// 连续数据库
+
+            Connection conn = DriverManager.getConnection(url, user, password);
+
+
+
+            if(!conn.isClosed()) {
+
+                System.out.println("Succeeded connecting to the Database!");
+            }else{
+                System.out.println("12312312");
+            }
+
+
+
+// statement用来执行SQL语句
+
+            Statement statement = conn.createStatement();
+    }catch(ClassNotFoundException e) {
+            System.out.println("Sorry,can`t find the Driver!");
+            e.printStackTrace();
+        } catch(SQLException e) {
+            e.printStackTrace();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }

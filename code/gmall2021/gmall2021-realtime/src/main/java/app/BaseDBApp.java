@@ -4,16 +4,24 @@ import bean.TableProcess;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.ververica.cdc.connectors.mysql.MySQLSource;
+import com.alibaba.ververica.cdc.connectors.mysql.table.StartupOptions;
 import com.alibaba.ververica.cdc.debezium.DebeziumSourceFunction;
 import common.TableProcessFunction;
 import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.streaming.api.datastream.*;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import common.CustomDeserializationSchema;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
+import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.flink.util.OutputTag;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import utils.DimSink;
 import utils.MyKafkaUtil;
+
+import javax.annotation.Nullable;
 
 public class BaseDBApp {
     public static void main(String[] args) throws Exception {
@@ -48,15 +56,15 @@ public class BaseDBApp {
                     }
                 });
         //打印测试
-        // filterDS.print();
+        //  filterDS.print();
         //5.创建 MySQL CDC Source
         DebeziumSourceFunction<String> sourceFunction = MySQLSource.<String>builder()
-                .hostname("hadoop102")
+                .hostname("VM-4-7-centos")
                 .port(3306)
                 .username("root")
-                .password("000000")
-                .databaseList("gmall2021-realtime")
-                .tableList("gmall2021-realtime.table_process")
+                .password("3edcCFT^")
+                .databaseList("gmall2021")
+                .tableList("gmall2021.table_process")
                 .deserializer(new CustomDeserializationSchema()
                 )
                 .build();
@@ -73,9 +81,28 @@ public class BaseDBApp {
                 OutputTag<JSONObject>(TableProcess.SINK_TYPE_HBASE) {
                 };
         SingleOutputStreamOperator<JSONObject> kafkaJsonDS = connectedStream.process(new
-                TableProcessFunction(hbaseTag,mapStateDescriptor));
+                TableProcessFunction(hbaseTag, mapStateDescriptor));
         DataStream<JSONObject> hbaseJsonDS = kafkaJsonDS.getSideOutput(hbaseTag);
         //7.执行任务
+        hbaseJsonDS.print("mysql===>");
+        kafkaJsonDS.print("kafka===>");
+        hbaseJsonDS.addSink(new DimSink());
+        FlinkKafkaProducer<JSONObject> kafkaSinkBySchema = MyKafkaUtil.getKafkaSinkBySchema(
+                new KafkaSerializationSchema<JSONObject>() {
+                    @Override
+                    public void open(SerializationSchema.InitializationContext context) throws Exception {
+                        System.out.println("开始序列化 Kafka 数据！");
+                    }
+
+                    @Override
+
+                    public ProducerRecord<byte[], byte[]> serialize(JSONObject element, @Nullable Long
+                            timestamp) {
+                        return new ProducerRecord<byte[], byte[]>(element.getString("sink_table"),
+                                element.getString("data").getBytes());
+                    }
+                });
+        kafkaJsonDS.addSink(kafkaSinkBySchema);
         env.execute();
     }
 }
