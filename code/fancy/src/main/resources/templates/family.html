@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录</title>
+    <script type="text/javascript">
+        // alert 是 JavaScript 语言提供的一个警告框函数。
+        // 它可以接收任意类型的参数，这个参数就是警告框的提示信息
+        alert("庄家注册房间，玩家进入房间");
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: rgb(235, 235, 235);
+        }
+
+        #createRoom {
+            height: 440px;
+            background-color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            position: absolute;
+            left: 25%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            /* 相对于现在所处位置的位移变化，x便偏移自己宽度的50%，y偏移自己高度的50% */
+        }
+
+        #enterRoom {
+            height: 440px;
+            background-color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            position: absolute;
+            left: 75%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            /* 相对于现在所处位置的位移变化，x便偏移自己宽度的50%，y偏移自己高度的50% */
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        form input {
+            width: 100%;
+            height: 30px;
+            display: block;
+            margin-bottom: 20px;
+            padding-left: 10px;
+            box-sizing: border-box;
+        }
+
+        .mya {
+            width: 100%;
+            height: 30px;
+            margin-bottom: 20px;
+        }
+
+        .mya a:nth-child(1) {
+            float: left;
+        }
+
+        .mya a:nth-child(2) {
+            float: right;
+        }
+
+        button {
+            width: 100%;
+            height: 40px;
+            background-color: rgb(235, 235, 235);
+            border: none;
+        }
+
+        button:active {
+            box-shadow: 0 0 3px rgb(173, 172, 172);
+            /* x偏移  y偏移  模糊值 颜色 */
+        }
+    </style>
+</head>
+
+<body>
+<div id="room" style="width:100%; float:left;">
+    <!-- left -->
+    <div id="createRoom" style="width: 40%;">
+        <form method="post" action="/user2/registRoom">
+            房间创建者账号(庄家)：<input name="name" type="text"><br>
+            房间号：<input name="roomname" type="text"><br>
+            房间人数：<input name="number" type="text"><br>
+            参加闲家账号(账号之间需要以,分割)：<input name="player" type="text"><br>
+            <div class="mya">
+                <input type="submit" value="创建房间">
+            </div>
+        </form>
+    </div>
+    <!-- right -->
+    <div id="enterRoom" style="width: 40%;">
+        <form method="post" action="/user2/centerRoom">
+            闲家账号：<input name="name" type="text"><br>
+            房间号：<input name="roomname" type="text"><br>
+            <div class="mya">
+                <input type="submit" value="进入房间">
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+
+</body>
+</html>

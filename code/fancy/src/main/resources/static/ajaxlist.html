@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<input id="username" readonly="readonly">
+<input id="password" readonly="readonly">
+<div id="msg"> </div>
+</body>
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script type="text/javascript">
+    //获取basePath，测试的话就能用就完了
+    //请求渲染模拟
+    var BASE_PATH="http://localhost:8080";
+
+    $.ajax({
+        url: BASE_PATH + "/list",
+        type: "get",
+        success: function f(data) {
+            $("#username").val(data.username);
+            $("#password").val(data.password);
+            $("#msg").html("编号：" + data.username + " , 姓名：" + data.password);
+        }
+    })
+</script>
+</html>

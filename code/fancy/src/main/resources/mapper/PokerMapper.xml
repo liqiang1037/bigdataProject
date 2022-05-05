@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.fancy.mapper.PokerMapper">
+
+    <select id="findByName" resultType="String">
+        select poker from poker_room where roomname = #{roomname}
+    </select>
+    <insert id="save" parameterType="Poker">
+        insert into poker_room(roomname,poker,createdate) value (#{roomname},#{poker},#{createdate})
+    </insert>
+</mapper>
