@@ -33,3 +33,29 @@ CREATE TABLE `poker_log` (
     `player` varchar(500) NOT NULL,
     `createdate` varchar(32) DEFAULT NULL,
 )
+
+
+use mysql;
+CREATE TABLE if not exists `room_info` (
+                             `roomname` varchar(32) NOT NULL,
+                             `number` varchar(32) NOT NULL,
+                             `name` varchar(32) DEFAULT NULL,
+                             player varchar(500) NOT NULL
+);
+
+CREATE TABLE if not exists  `poker_log` (
+                             `roomname` varchar(32) NOT NULL,
+                             `number` varchar(32) NOT NULL,
+                             `poker` varchar(32) DEFAULT NULL,
+                             `player` varchar(500) NOT NULL,
+                             `createdate` varchar(32) DEFAULT NULL
+);
+
+CREATE TABLE  if not exists  `mysql.poker_room` (
+                                    `roomname` varchar(32) NOT NULL,
+                                    `poker` varchar(500) NOT NULL,
+                                    `createdate` varchar(32) DEFAULT NULL,
+                                    banker varchar(32) NOT NULL,
+                                    player varchar(500) NOT NULL
+);
+

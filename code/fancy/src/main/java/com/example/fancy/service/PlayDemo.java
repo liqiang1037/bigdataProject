@@ -21,12 +21,10 @@ public class PlayDemo {
         Player p1 = new Player("1");
         Player p2 = new Player("2");
         Player p3 = new Player("3");
-        Player p4 = new Player("4");
 
         p.add(p1);
         p.add(p2);
         p.add(p3);
-        p.add(p4);
 
         return p;
 

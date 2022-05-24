@@ -49,22 +49,24 @@ public class PukeController {
                         Map<String, Object> map, Model model) {
 
         if (!StringUtils.isEmpty(username) && game.getPlayer().contains(username)) {
-            if((password.equals("785489") && username.equals("1"))
-                    ||(password.equals("、674985") && username.equals("2"))
-                    ||(password.equals("196378") && username.equals("3")))
-            if (password.equals("785489") && username.equals("1")) {
+            if((password.equals("275172") && username.equals("1"))
+                    ||(password.equals("443663") && username.equals("2"))
+                    ||(password.equals("164098") && username.equals("3")))
+            if (password.equals("275172") && username.equals("1")) {
                 gameMap = game.play(cardList,"1");
-
+                i++;
                 imageMap = new HashMap<>();
 
             }
             if (gameMap != null) {
+                System.out.println("第-->"+i+"把牌");
+
                 //获取牌
                 for (Map.Entry<String, String> entry : gameMap.entrySet()) {
-
                     String mapKey = entry.getKey();
+                    System.out.println("玩家名称-->"+mapKey);
                     String mapValue = entry.getValue();
-
+                    System.out.println("玩家牌-->"+mapValue);
                     if ("common".equals(mapKey)) {
                         model.addAttribute("common", mapValue);//普通字符串
                     } else {

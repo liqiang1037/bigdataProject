@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Login</title>
+    <link rel="stylesheet"href="./css/style.css" />
+</head>
+<body>
+<body>
+<div id="room" style="width:100%; float:left;">
+    <!-- left -->
+    <div id="createRoom" style="width: 40%;">
+        <form method="post" action="/user2/registRoom">
+            房间创建者账号(庄家)：<input name="name" type="text"><br>
+            房间号：<input name="roomname" type="text"><br>
+            房间人数：<input name="number" type="text"><br>
+            参加闲家账号(账号之间需要以,分割)：<input name="player" type="text"><br>
+                <input type="submit" value="创建房间">
+        </form>
+    </div>
+    <!-- right -->
+    <div id="enterRoom" style="width: 40%;">
+        <form method="post" action="/user2/centerRoom">
+            闲家账号：<input name="name" type="text"><br>
+            房间号：<input name="roomname" type="text"><br>
+                <input type="submit" value="进入房间">
+        </form>
+    </div>
+</div>
+
+
+
+
+</body>
+</html>
