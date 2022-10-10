@@ -35,7 +35,7 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        System.out.println("12321312");
+       // System.out.println("12321312");
         Class.forName(GmallConfig.PHOENIX_DRIVER);
         connection = DriverManager.getConnection(GmallConfig.PHOENIX_SERVER);
     }
@@ -47,7 +47,7 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
         BroadcastState<String, TableProcess> broadcastState = ctx.getBroadcastState(mapStateDescriptor);
         //将配置信息流中的数据转换为 JSON 对象{"database":"","table":"","type","","data":{"":""}}
         JSONObject jsonObject = JSON.parseObject(value);
-        System.out.println("jsonObject==>"+jsonObject);
+       // System.out.println("jsonObject==>"+jsonObject);
         //取出数据中的表名以及操作类型封装 key
         JSONObject data = jsonObject.getJSONObject("data");
         String table = data.getString("source_table");
@@ -58,7 +58,7 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
         TableProcess tableProcess = JSON.parseObject(data.toString(), TableProcess.class);
        // System.out.println("广播流  tableProcess.getSinkType()===>"+tableProcess.getSinkType());
         checkTable(tableProcess.getSinkTable(), tableProcess.getSinkColumns(), tableProcess.getSinkPk(), tableProcess.getSinkExtend());
-        System.out.println("广播流 Key:" + key + "," + tableProcess);
+        //System.out.println("广播流 Key:" + key + "," + tableProcess);
         //广播出去
         broadcastState.put(key, tableProcess);
     }
@@ -104,7 +104,7 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
             createTableSQL.append(")").append(sinkExtend);
 
             //打印建表语句
-            System.out.println("\"Phoenix表\" + sinkTable +"+createTableSQL);
+          //  System.out.println("\"Phoenix表\" + sinkTable +"+createTableSQL);
 
             //预编译SQL
             preparedStatement = connection.prepareStatement(createTableSQL.toString());
@@ -137,15 +137,10 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
             type="insert";
         }
         String key = table + ":" + type;
-        if(table.equals("order_info")) {
-            System.out.println("过滤前 的订单数据为 ===>" + key);
-        }
+
         //取出对应的配置信息数据
         TableProcess tableProcess = broadcastState.get(key);
         if (tableProcess != null) {
-            if(table.equals("order_info")) {
-                System.out.println("过滤后的订单数据为 ===>" + key);
-            }
             //向数据中追加 sink_table 信息
             jsonObject.put("sink_table", tableProcess.getSinkTable());
             //根据配置信息中提供的字段做数据过滤
@@ -154,7 +149,12 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
             //System.out.println("主流  tableProcess.getSinkType()===>"+tableProcess.getSinkType());
             if (TableProcess.SINK_TYPE_KAFKA.equals(tableProcess.getSinkType())) {
                 //Kafka 数据,将数据输出到主流
-                collector.collect(jsonObject);
+                try {
+                    collector.collect(jsonObject);
+                }catch (Exception e){
+                    System.out.println("出错的数据--》"+jsonObject);
+                    e.printStackTrace();
+                }
             } else if (TableProcess.SINK_TYPE_HBASE.equals(tableProcess.getSinkType())) {
                 //HBase 数据,将数据输出到侧输出流
                 readOnlyContext.output(objectOutputTag, jsonObject);

@@ -34,10 +34,10 @@ public class PaymentWideApp {
                 StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
         //1.1 设置状态后端
-        env.setStateBackend(new FsStateBackend("hdfs://hadoop100:8020/gmall/dwd_log/ck"));
-        //1.2 开启 CK
-        env.enableCheckpointing(10000L, CheckpointingMode.EXACTLY_ONCE);
-        env.getCheckpointConfig().setCheckpointTimeout(60000L);
+//        env.setStateBackend(new FsStateBackend("hdfs://hadoop100:8020/gmall/dwd_log/ck"));
+//        //1.2 开启 CK
+//        env.enableCheckpointing(10000L, CheckpointingMode.EXACTLY_ONCE);
+//        env.getCheckpointConfig().setCheckpointTimeout(60000L);
         //修改用户名
         //System.setProperty("HADOOP_USER_NAME", "atguigu");
         //2.读取 Kafka 主题数据 dwd_payment_info dwm_order_wide
@@ -102,7 +102,7 @@ public class PaymentWideApp {
                     }
                 });
         //打印测试
-       // paymentWideDS.print("paymentWideDS>>>>>>>>>>");
+        //paymentWideDS.print("paymentWideDS>>>>>>>>>>");
         //6.将数据写入 Kafka dwm_payment_wide
 
         paymentWideDS.map(JSON::toJSONString).addSink(MyKafkaUtil.getKafkaSink(paymentWideSinkTopic));

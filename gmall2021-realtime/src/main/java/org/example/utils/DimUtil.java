@@ -76,5 +76,5 @@ public class DimUtil {
             e.printStackTrace();
         } }
     public static void main(String[] args) {
-        System.out.println(getDimInfo("DIM_BASE_TRADEMARK", "2"));
+        System.out.println(getDimInfo("DIM_BASE_TRADEMARK", "1"));
     } }

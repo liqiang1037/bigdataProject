@@ -33,6 +33,7 @@ public class DimSink extends RichSinkFunction<JSONObject> {
             String tableName = jsonObject.getString("sink_table");
             //创建插入数据的 SQL
             String upsertSql = genUpsertSql(tableName, keys, values);
+            //System.out.println("upsertSql==>"+upsertSql);
             //System.out.println(upsertSql);
             //编译 SQL
             preparedStatement = connection.prepareStatement(upsertSql);
@@ -41,7 +42,7 @@ public class DimSink extends RichSinkFunction<JSONObject> {
             //提交
             connection.commit();
             //判断如果为更新数据,则删除 Redis 中数据
-            if ("update".equals(jsonObject.getString("type"))){
+            if ("update".equals(jsonObject.getString("operation"))){
                 String sourceTable = jsonObject.getString("table");
                 String value = jsonObject.getJSONObject("data").getString("id");
                 String key = sourceTable + ":" + value;

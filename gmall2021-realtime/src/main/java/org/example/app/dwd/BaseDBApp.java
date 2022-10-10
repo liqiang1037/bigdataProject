@@ -62,7 +62,7 @@ public class BaseDBApp {
                 return data != null && data.length() > 0&&!"delete".equals(type);
             }
         });
-        filterDS.print("filterDS===>");
+       // filterDS.print("filterDS===>");
         //5.创建 MySQL CDC Source
         DebeziumSourceFunction<String> sourceFunction = MySQLSource.<String>builder()
                 .hostname("hadoop102")
@@ -111,12 +111,11 @@ public class BaseDBApp {
                 .build();
         //6.读取 MySQL 数据
         DataStreamSource<String> tableProcessDS = env.addSource(sourceFunction);
-        tableProcessDS.print("tableProcessDS===>");
+       // tableProcessDS.print("tableProcessDS===>");
         //7.将配置信息流作为广播流
         MapStateDescriptor<String, TableProcess> mapStateDescriptor = new
                 MapStateDescriptor<>("table-process-state", String.class, TableProcess.class);
         BroadcastStream<String> broadcastStream = tableProcessDS.broadcast(mapStateDescriptor);
-//        broadcastStream.getBroadcastStateDescriptors();
 
         //8.将主流和广播流进行链接
         BroadcastConnectedStream<JSONObject, String> connectedStream = filterDS.connect(broadcastStream);
@@ -128,22 +127,23 @@ public class BaseDBApp {
         SingleOutputStreamOperator<JSONObject> kafkaJsonDS = connectedStream.process(new
                 TableProcessFunction(hbaseTag, mapStateDescriptor));
         DataStream<JSONObject> hbaseJsonDS = kafkaJsonDS.getSideOutput(hbaseTag);
+       // hbaseJsonDS.print("hbaseJsonDS===>");
         hbaseJsonDS.addSink(new DimSink());
         //7.执行任务
         FlinkKafkaProducer<JSONObject> kafkaSinkBySchema = MyKafkaUtil.getKafkaSinkBySchema(new KafkaSerializationSchema<JSONObject>() {
             @Override
             public void open(SerializationSchema.InitializationContext context) throws Exception {
-                System.out.println("开始序列化 Kafka 数据！");
+              //  System.out.println("开始序列化 Kafka 数据！");
             }
             @Override
             public ProducerRecord<byte[], byte[]> serialize(JSONObject element, @Nullable Long
                     timestamp) {
-                System.out.println("kafka JSONObject"+element.toString());
+                //System.out.println("kafka JSONObject"+element.toString());
                 return new ProducerRecord<byte[], byte[]>(element.getString("sink_table"),
                         element.getString("data").getBytes());
             }
         });
-        kafkaJsonDS.print("kafkaJsonDS=====");
+       // kafkaJsonDS.print("kafkaJsonDS=====");
         kafkaJsonDS.addSink(kafkaSinkBySchema);
         env.execute();
     }

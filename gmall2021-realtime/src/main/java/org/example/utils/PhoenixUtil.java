@@ -17,7 +17,7 @@ public class PhoenixUtil {
             Connection connection =
                     DriverManager.getConnection(GmallConfig.PHOENIX_SERVER);
             //设置连接到的 Phoenix 的库
-           // connection.setSchema(GmallConfig.HBASE_SCHEMA);
+           connection.setSchema(GmallConfig.HBASE_SCHEMA);
             return connection;
         } catch (Exception e) {
             e.printStackTrace();
@@ -73,6 +73,6 @@ public class PhoenixUtil {
         }
     }
     public static void main(String[] args) {
-        System.out.println(queryList("select * from SYSTEM.CATALOG",
+        System.out.println(queryList("select * from DIM_BASE_TRADEMARK",
                 JSONObject.class));
     } }

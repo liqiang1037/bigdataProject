@@ -71,7 +71,7 @@ public class Flink_CDCWithCustomerSchema {
         //3.使用 CDC Source 从 MySQL 读取数据
         DataStreamSource<String> mysqlDS = env.addSource(mysqlSource);
         //4.打印数据
-        mysqlDS.print("ods_base_db===>");
+       // mysqlDS.print("ods_base_db===>");
         mysqlDS.addSink(MyKafkaUtil.getKafkaSink("ods_base_db"));
         env.execute();
     } }
