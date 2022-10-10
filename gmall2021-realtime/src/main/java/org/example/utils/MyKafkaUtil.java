@@ -16,6 +16,8 @@ public class MyKafkaUtil {
     private static Properties properties = new Properties();
     static {
         properties.setProperty("bootstrap.servers", KAFKA_SERVER);
+      //  properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
     }
     public static FlinkKafkaProducer<String> getKafkaSink(String topic) {
         return new FlinkKafkaProducer<String>(topic, new SimpleStringSchema(), properties);
@@ -30,6 +32,8 @@ public class MyKafkaUtil {
     public static FlinkKafkaConsumer<String> getKafkaSource(String topic, String groupId) {
         //给配置信息对象添加配置项
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+     //   properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
         //获取 KafkaSource
         return new FlinkKafkaConsumer<String>(topic, new SimpleStringSchema(), properties);
     }
@@ -42,6 +46,17 @@ public class MyKafkaUtil {
                 kafkaSerializationSchema,
                 properties,
                 FlinkKafkaProducer.Semantic.EXACTLY_ONCE);
+    }
+
+    //拼接 Kafka 相关属性到 DDL
+    public static String getKafkaDDL(String topic,String groupId){
+        String ddl="'connector' = 'kafka', " +
+                " 'topic' = '"+topic+"'," +
+                " 'properties.bootstrap.servers' = '"+ KAFKA_SERVER +"', " +
+                " 'properties.group.id' = '"+groupId+ "', " +
+                " 'format' = 'json', " +
+                " 'scan.startup.mode' = 'latest-offset' ";
+        return ddl; 
     }
 }
 

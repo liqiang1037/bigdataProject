@@ -28,7 +28,7 @@ public class Flink_CDCWithCustomerSchema {
                 .username("root")
                 .password("3edcCFT^")
                 .databaseList("gmall2021")
-                .startupOptions(StartupOptions.latest())
+                .startupOptions(StartupOptions. latest())
                 .deserializer(new DebeziumDeserializationSchema<String>() { //自定义数据解析器
                     @Override
                     public void deserialize(SourceRecord sourceRecord, Collector<String>
@@ -39,7 +39,8 @@ public class Flink_CDCWithCustomerSchema {
                         String db = arr[1];
                         String tableName = arr[2];
                         //获取操作类型 READ DELETE UPDATE CREATE
-                        Envelope.Operation operation = Envelope.operationFor(sourceRecord);
+                        Envelope.Operation operation =
+                                Envelope.operationFor(sourceRecord);
                         //获取值信息并转换为 Struct 类型
                         Struct value = (Struct) sourceRecord.value();
                         //获取变化后的数据
@@ -70,6 +71,7 @@ public class Flink_CDCWithCustomerSchema {
         //3.使用 CDC Source 从 MySQL 读取数据
         DataStreamSource<String> mysqlDS = env.addSource(mysqlSource);
         //4.打印数据
+        mysqlDS.print("ods_base_db===>");
         mysqlDS.addSink(MyKafkaUtil.getKafkaSink("ods_base_db"));
         env.execute();
     } }

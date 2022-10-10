@@ -1,5 +1,6 @@
 package org.example.app.func;
 
+
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.flink.api.common.state.BroadcastState;
@@ -21,115 +22,97 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, String,
-        JSONObject> {
-    private OutputTag<JSONObject> hbaseTag;
+public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, String, JSONObject> {
 
-    private OutputTag<JSONObject> outputTag;
+    private OutputTag<JSONObject> objectOutputTag;
     private MapStateDescriptor<String, TableProcess> mapStateDescriptor;
+    private Connection connection;
 
-    //定义 Phoenix 的连接
-    private Connection connection = null;
-
-    public TableProcessFunction(OutputTag<JSONObject> outputTag) {
-        this.outputTag = outputTag;
+    public TableProcessFunction(OutputTag<JSONObject> objectOutputTag, MapStateDescriptor<String, TableProcess> mapStateDescriptor) {
+        this.objectOutputTag = objectOutputTag;
+        this.mapStateDescriptor = mapStateDescriptor;
     }
+
     @Override
-    public void processElement(JSONObject jsonObject, ReadOnlyContext readOnlyContext,
-                               Collector<JSONObject> collector) throws Exception {
-        //获取状态
-        ReadOnlyBroadcastState<String, TableProcess> broadcastState =
-                readOnlyContext.getBroadcastState(mapStateDescriptor);
-        //获取表名和操作类型
-        String table = jsonObject.getString("table");
-        String type = jsonObject.getString("type");
-        String key = table + ":" + type;
-        //取出对应的配置信息数据
-        TableProcess tableProcess = broadcastState.get(key);
-        if (tableProcess != null) {
-            //向数据中追加 sink_table 信息
-            jsonObject.put("sink_table", tableProcess.getSinkTable());
-            //根据配置信息中提供的字段做数据过滤
-            filterColumn(jsonObject.getJSONObject("data"), tableProcess.getSinkColumns());
-            //判断当前数据应该写往 HBASE 还是 Kafka
-            if (TableProcess.SINK_TYPE_KAFKA.equals(tableProcess.getSinkType())) {
-                //Kafka 数据,将数据输出到主流
-                collector.collect(jsonObject);
-            } else if (TableProcess.SINK_TYPE_HBASE.equals(tableProcess.getSinkType())) {
-                //HBase 数据,将数据输出到侧输出流
-                readOnlyContext.output(hbaseTag, jsonObject);
-            }
-        } else {
-            System.out.println("No Key " + key + " In Mysql!");
-        } }
+    public void open(Configuration parameters) throws Exception {
+        System.out.println("12321312");
+        Class.forName(GmallConfig.PHOENIX_DRIVER);
+        connection = DriverManager.getConnection(GmallConfig.PHOENIX_SERVER);
+    }
+
+    //value:{"db":"","tn":"","before":{},"after":{},"type":""}
     @Override
-    public void processBroadcastElement(String jsonStr, Context context, Collector<JSONObject>
-            collector) throws Exception {
-        //获取状态
-        BroadcastState<String, TableProcess> broadcastState =
-                context.getBroadcastState(mapStateDescriptor);
+    public void processBroadcastElement(String value, Context ctx, Collector<JSONObject> out) throws Exception {
+//获取状态
+        BroadcastState<String, TableProcess> broadcastState = ctx.getBroadcastState(mapStateDescriptor);
         //将配置信息流中的数据转换为 JSON 对象{"database":"","table":"","type","","data":{"":""}}
-        JSONObject jsonObject = JSON.parseObject(jsonStr);
+        JSONObject jsonObject = JSON.parseObject(value);
+        System.out.println("jsonObject==>"+jsonObject);
         //取出数据中的表名以及操作类型封装 key
         JSONObject data = jsonObject.getJSONObject("data");
         String table = data.getString("source_table");
         String type = data.getString("operate_type");
+
         String key = table + ":" + type;
         //取出 Value 数据封装为 TableProcess 对象
         TableProcess tableProcess = JSON.parseObject(data.toString(), TableProcess.class);
-        checkTable(tableProcess.getSinkTable(),tableProcess.getSinkColumns(),tableProcess.getSinkPk(),tableProcess.getSinkExtend());
-        System.out.println("Key:" + key + "," + tableProcess);
+       // System.out.println("广播流  tableProcess.getSinkType()===>"+tableProcess.getSinkType());
+        checkTable(tableProcess.getSinkTable(), tableProcess.getSinkColumns(), tableProcess.getSinkPk(), tableProcess.getSinkExtend());
+        System.out.println("广播流 Key:" + key + "," + tableProcess);
         //广播出去
         broadcastState.put(key, tableProcess);
     }
-    /**
-     * Phoenix 建表
-     *
-     * @param sinkTable 表名 test
-     * @param sinkColumns 表名字段 id,name,sex
-     * @param sinkPk 表主键 id
-     * @param sinkExtend 表扩展字段 ""
-     * create table if not exists mydb.test(id varchar primary key,name
-    varchar,sex varchar) ...
-     */
-    private void checkTable(String sinkTable, String sinkColumns, String sinkPk, String sinkExtend)
-    {
-        //给主键以及扩展字段赋默认值
-        if (sinkPk == null) {
-            sinkPk = "id";
-        }
-        if (sinkExtend == null) {
-            sinkExtend = "";
-        }
-        //封装建表 SQL
-        StringBuilder createSql = new StringBuilder("create table if not exists ").append(GmallConfig.HBASE_SCHEMA).append(".").append(sinkTable).append("(");
-        //遍历添加字段信息
-        String[] fields = sinkColumns.split(",");
-        for (int i = 0; i < fields.length; i++) {
-            //取出字段
-            String field = fields[i];
-            //判断当前字段是否为主键
-            if (sinkPk.equals(field)) {
-                createSql.append(field).append(" varchar primary key ");
-            } else {
-                createSql.append(field).append(" varchar ");
-            }
-            //如果当前字段不是最后一个字段,则追加","
-            if (i < fields.length - 1) {
-                createSql.append(",");
-            }
-        }
-        createSql.append(")");
-        createSql.append(sinkExtend);
-        System.out.println(createSql);
-        //执行建表 SQL
+
+
+    //建表语句 : create table if not exists db.tn(id varchar primary key,tm_name varchar) xxx;
+    private void checkTable(String sinkTable, String sinkColumns, String sinkPk, String sinkExtend) {
+
         PreparedStatement preparedStatement = null;
+
         try {
-            preparedStatement = connection.prepareStatement(createSql.toString());
+            if (sinkPk == null) {
+                sinkPk = "id";
+            }
+            if (sinkExtend == null) {
+                sinkExtend = "";
+            }
+
+            StringBuffer createTableSQL = new StringBuffer("create table if not exists ")
+                    .append(GmallConfig.HBASE_SCHEMA)
+                    .append(".")
+                    .append(sinkTable)
+                    .append("(");
+
+            String[] fields = sinkColumns.split(",");
+
+            for (int i = 0; i < fields.length; i++) {
+                String field = fields[i];
+
+                //判断是否为主键
+                if (sinkPk.equals(field)) {
+                    createTableSQL.append(field).append(" varchar primary key ");
+                } else {
+                    createTableSQL.append(field).append(" varchar ");
+                }
+
+                //判断是否为最后一个字段,如果不是,则添加","
+                if (i < fields.length - 1) {
+                    createTableSQL.append(",");
+                }
+            }
+
+            createTableSQL.append(")").append(sinkExtend);
+
+            //打印建表语句
+            System.out.println("\"Phoenix表\" + sinkTable +"+createTableSQL);
+
+            //预编译SQL
+            preparedStatement = connection.prepareStatement(createTableSQL.toString());
+
+            //执行
             preparedStatement.execute();
         } catch (SQLException e) {
-            e.printStackTrace();
-            throw new RuntimeException("创建 Phoenix 表" + sinkTable + "失败！");
+            throw new RuntimeException("Phoenix表" + sinkTable + "建表失败！");
         } finally {
             if (preparedStatement != null) {
                 try {
@@ -140,23 +123,58 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
             }
         }
     }
-;
 
+    //value:{"db":"","tn":"","before":{},"after":{},"type":""}
     @Override
-    public void open(Configuration parameters) throws Exception {
-        //初始化 Phoenix 的连接
-        Class.forName(GmallConfig.PHOENIX_DRIVER);
-        connection = DriverManager.getConnection(GmallConfig.PHOENIX_SERVER);
+    public void processElement(JSONObject jsonObject, ReadOnlyContext readOnlyContext, Collector<JSONObject> collector) throws Exception {
+
+        //获取状态
+        ReadOnlyBroadcastState<String, TableProcess> broadcastState = readOnlyContext.getBroadcastState(mapStateDescriptor);
+        //获取表名和操作类型
+        String table = jsonObject.getString("table");
+        String type = jsonObject.getString("operation");
+        if("create".equals(type)){
+            type="insert";
+        }
+        String key = table + ":" + type;
+        if(table.equals("order_info")) {
+            System.out.println("过滤前 的订单数据为 ===>" + key);
+        }
+        //取出对应的配置信息数据
+        TableProcess tableProcess = broadcastState.get(key);
+        if (tableProcess != null) {
+            if(table.equals("order_info")) {
+                System.out.println("过滤后的订单数据为 ===>" + key);
+            }
+            //向数据中追加 sink_table 信息
+            jsonObject.put("sink_table", tableProcess.getSinkTable());
+            //根据配置信息中提供的字段做数据过滤
+            filterColumn(jsonObject.getJSONObject("data"), tableProcess.getSinkColumns());
+            //判断当前数据应该写往 HBASE 还是 Kafka
+            //System.out.println("主流  tableProcess.getSinkType()===>"+tableProcess.getSinkType());
+            if (TableProcess.SINK_TYPE_KAFKA.equals(tableProcess.getSinkType())) {
+                //Kafka 数据,将数据输出到主流
+                collector.collect(jsonObject);
+            } else if (TableProcess.SINK_TYPE_HBASE.equals(tableProcess.getSinkType())) {
+                //HBase 数据,将数据输出到侧输出流
+                readOnlyContext.output(objectOutputTag, jsonObject);
+            }
+        } else {
+            System.out.println("No Key " + key + " In Mysql!");
+        }
     }
 
-
-    //根据配置信息中提供的字段做数据过滤
+    /**
+     * @param data        {"id":"11","tm_name":"atguigu","logo_url":"aaa"}
+     * @param sinkColumns id,tm_name
+     *                    {"id":"11","tm_name":"atguigu"}
+     */
     private void filterColumn(JSONObject data, String sinkColumns) {
         //保留的数据字段
         String[] fields = sinkColumns.split(",");
         List<String> fieldList = Arrays.asList(fields);
         Set<Map.Entry<String, Object>> entries = data.entrySet();
+
         entries.removeIf(next -> !fieldList.contains(next.getKey()));
     }
-
 }

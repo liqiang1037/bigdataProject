@@ -1,8 +1,11 @@
 package org.example.bean;
 
 import lombok.Data;
+
+import java.io.Serializable;
+
 @Data
-public class TableProcess {
+public class TableProcess implements Serializable {
     //动态分流 Sink 常量
     public static final String SINK_TYPE_HBASE = "hbase";
     public static final String SINK_TYPE_KAFKA = "kafka";

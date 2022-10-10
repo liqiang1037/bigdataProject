@@ -11,7 +11,6 @@ import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.runtime.state.filesystem.FsStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.*;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -25,7 +24,6 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
-import org.example.app.func.CustomerDeserialization;
 import org.example.app.func.DimSink;
 import org.example.app.func.TableProcessFunction;
 import org.example.bean.TableProcess;
@@ -39,29 +37,32 @@ public class BaseDBApp {
                 StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
         //1.1 设置状态后端
-        env.setStateBackend(new FsStateBackend("hdfs://hadoop100:8020/gmall/dwd_log/ck"));
-//1.2 开启 CK
+       // env.setStateBackend(new FsStateBackend("hdfs://hadoop100:8020/gmall/dwd_log/ck"));
+       // 1.2 开启 CK
         env.enableCheckpointing(10000L, CheckpointingMode.EXACTLY_ONCE);
         env.getCheckpointConfig().setCheckpointTimeout(60000L);
         //2.读取 Kafka 数据
         String topic = "ods_base_db";
         String groupId = "ods_db_group";
-        FlinkKafkaConsumer<String> kafkaSource = MyKafkaUtil.getKafkaSource(topic, groupId);
+        FlinkKafkaConsumer<String> kafkaSource = MyKafkaUtil.getKafkaSource(topic,
+                groupId);
         DataStreamSource<String> kafkaDS = env.addSource(kafkaSource);
         //3.将每行数据转换为 JSON 对象
         SingleOutputStreamOperator<JSONObject> jsonObjDS =
                 kafkaDS.map(JSON::parseObject);
+
         //4.过滤
         SingleOutputStreamOperator<JSONObject> filterDS = jsonObjDS.filter(new FilterFunction<JSONObject>() {
             @Override
             public boolean filter(JSONObject value) throws Exception {
                 //获取 data 字段
                 String data = value.getString("data");
-                return data != null && data.length() > 0;
+                String type = value.getString("operation");
+
+                return data != null && data.length() > 0&&!"delete".equals(type);
             }
         });
-        //打印测试
-        // filterDS.print();
+        filterDS.print("filterDS===>");
         //5.创建 MySQL CDC Source
         DebeziumSourceFunction<String> sourceFunction = MySQLSource.<String>builder()
                 .hostname("hadoop102")
@@ -70,44 +71,80 @@ public class BaseDBApp {
                 .password("3edcCFT^")
                 .databaseList("gmall2021_realtime")
                 .tableList("gmall2021_realtime.table_process")
-                .deserializer(new CustomerDeserialization())
+                .deserializer(new DebeziumDeserializationSchema<String>() {
+                    //反序列化方法
+                    @Override
+                    public void deserialize(SourceRecord sourceRecord, Collector<String> collector)
+                            throws Exception {
+                        //库名&表名
+                        String topic = sourceRecord.topic();
+                        String[] split = topic.split("\\.");
+                        String db = split[1];
+                        String table = split[2];
+                        //获取数据
+                        Struct value = (Struct) sourceRecord.value();
+                        Struct after = value.getStruct("after");
+                        JSONObject data = new JSONObject();
+                        if (after != null) {
+                            Schema schema = after.schema();
+                            for (Field field : schema.fields()) {
+                                data.put(field.name(), after.get(field.name()));
+                            }
+                        }
+                        //获取操作类型
+                        Envelope.Operation operation = Envelope.operationFor(sourceRecord);
+                        //创建 JSON 用于存放最终的结果
+                        JSONObject result = new JSONObject();
+                        result.put("database", db);
+                        result.put("table", table);
+                        result.put("type", operation.toString().toLowerCase());
+                        result.put("data", data);
+                      //  System.out.println("维度表数据为===>"+result.toJSONString());
+                        collector.collect(result.toJSONString());
+                    }
+                    //定义数据类型
+                    @Override
+                    public TypeInformation<String> getProducedType() {
+                        return TypeInformation.of(String.class);
+                    }
+                })
                 .build();
-//6.读取 MySQL 数据
+        //6.读取 MySQL 数据
         DataStreamSource<String> tableProcessDS = env.addSource(sourceFunction);
-       // tableProcessDS.print();
-//7.将配置信息流作为广播流
+        tableProcessDS.print("tableProcessDS===>");
+        //7.将配置信息流作为广播流
         MapStateDescriptor<String, TableProcess> mapStateDescriptor = new
                 MapStateDescriptor<>("table-process-state", String.class, TableProcess.class);
         BroadcastStream<String> broadcastStream = tableProcessDS.broadcast(mapStateDescriptor);
-//8.将主流和广播流进行链接
+//        broadcastStream.getBroadcastStateDescriptors();
+
+        //8.将主流和广播流进行链接
         BroadcastConnectedStream<JSONObject, String> connectedStream = filterDS.connect(broadcastStream);
 
         OutputTag<JSONObject> hbaseTag = new
                 OutputTag<JSONObject>(TableProcess.SINK_TYPE_HBASE) {
                 };
+
         SingleOutputStreamOperator<JSONObject> kafkaJsonDS = connectedStream.process(new
-                TableProcessFunction(hbaseTag));
+                TableProcessFunction(hbaseTag, mapStateDescriptor));
         DataStream<JSONObject> hbaseJsonDS = kafkaJsonDS.getSideOutput(hbaseTag);
-        hbaseJsonDS.print("hbaseJsonDS=======");
-        kafkaJsonDS.print("kafkaJsonDS+++++++");
-//        hbaseJsonDS.addSink(new DimSink());
-//        //7.执行任务
-//
-//        FlinkKafkaProducer<JSONObject> kafkaSinkBySchema = MyKafkaUtil.getKafkaSinkBySchema(new KafkaSerializationSchema<JSONObject>() {
-//            @Override
-//            public void open(SerializationSchema.InitializationContext context) throws Exception {
-//                System.out.println("开始序列化 Kafka 数据！");
-//            }
-//
-//            @Override
-//
-//            public ProducerRecord<byte[], byte[]> serialize(JSONObject element, @Nullable Long
-//                    timestamp) {
-//                return new ProducerRecord<byte[], byte[]>(element.getString("sink_table"),
-//                        element.getString("data").getBytes());
-//            }
-//        });
-//        kafkaJsonDS.addSink(kafkaSinkBySchema);
+        hbaseJsonDS.addSink(new DimSink());
+        //7.执行任务
+        FlinkKafkaProducer<JSONObject> kafkaSinkBySchema = MyKafkaUtil.getKafkaSinkBySchema(new KafkaSerializationSchema<JSONObject>() {
+            @Override
+            public void open(SerializationSchema.InitializationContext context) throws Exception {
+                System.out.println("开始序列化 Kafka 数据！");
+            }
+            @Override
+            public ProducerRecord<byte[], byte[]> serialize(JSONObject element, @Nullable Long
+                    timestamp) {
+                System.out.println("kafka JSONObject"+element.toString());
+                return new ProducerRecord<byte[], byte[]>(element.getString("sink_table"),
+                        element.getString("data").getBytes());
+            }
+        });
+        kafkaJsonDS.print("kafkaJsonDS=====");
+        kafkaJsonDS.addSink(kafkaSinkBySchema);
         env.execute();
     }
 }

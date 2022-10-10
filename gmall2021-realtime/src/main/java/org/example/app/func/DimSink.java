@@ -4,6 +4,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.example.common.GmallConfig;
+import org.example.utils.DimUtil;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -32,13 +33,20 @@ public class DimSink extends RichSinkFunction<JSONObject> {
             String tableName = jsonObject.getString("sink_table");
             //创建插入数据的 SQL
             String upsertSql = genUpsertSql(tableName, keys, values);
-            System.out.println(upsertSql);
+            //System.out.println(upsertSql);
             //编译 SQL
             preparedStatement = connection.prepareStatement(upsertSql);
             //执行
             preparedStatement.executeUpdate();
             //提交
             connection.commit();
+            //判断如果为更新数据,则删除 Redis 中数据
+            if ("update".equals(jsonObject.getString("type"))){
+                String sourceTable = jsonObject.getString("table");
+                String value = jsonObject.getJSONObject("data").getString("id");
+                String key = sourceTable + ":" + value;
+                DimUtil.deleteCached(key);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println("插入 Phoenix 数据失败！");
